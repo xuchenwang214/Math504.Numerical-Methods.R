@@ -1,0 +1,223 @@
+---
+title: "HW2_504"
+author: "Xuchen Wang"
+date: "January 27, 2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=FALSE}
+library(mosaic)
+library(ggplot2)
+```
+
+#### 2
+###### (a) Newton's method
+```{r warning=FALSE}
+MySqrt <- function(a, start_value, epsilon = 10^(-4), max_i = 10^5 ){
+  # This function calculate sqrt(a) using Newton's method.
+  # parameter: a 
+  #            start_value 
+  #            epsilon (limition of accuarcy)
+  #            max_i (max number of iteritions)
+  # return: x (sqrt(a))
+  #         i (the number of iterations)
+  x <- start_value      # set the initial value
+  i <- 0                # set the initial number of iterations
+  f <- function(x){x^2-a}            # function f(x) = x^2-a
+  f1 <- D(f(x)~x)   # derivitive function of f(x)
+  while(abs(f(x)) > epsilon & i < max_i){
+    x <- x-f(x)/f1(x)   # iteration function
+    i <- i+1                          # increase number of iterations
+  }
+  print(list(sqrt_a = x, iteration = i))
+}
+MySqrt(1000, 5)
+```
+
+###### (b) bisection method
+```{r}
+MySqrt1 <- function(a, start_interval, epsilon = 10^(-4), max_i = 10^5){
+  # This function calculate sqrt(a) using Bisection method.
+  # parameter: a 
+  #            start_interval 
+  #            epsilon (limition of accuarcy)
+  #            max_i (max number of iteritions)
+  # return: x_r (sqrt(a))
+  #         i (the number of iterations)
+  x_l <- start_interval[1]   # set the initial left point value
+  x_r <- start_interval[2]   # set the initial right point value
+  i <- 0                     # set the initial number of iterations
+  f <- function(x){x^2-a}    # function f(x) = x^2-a
+  while((x_r-x_l) > epsilon & i < max_i){
+    x_m <- (x_r+x_l)/2       # calculate the middle point
+    if(f(x_r)*f(x_m) < 0){
+      x_l <- x_m             # update the left point 
+    }
+    else {
+      x_r <- x_m             # update the right point
+    }
+    i <- i+1                 # increase number of iterations
+  }
+  print(list(sqrt_a = x_r, iteration = i))
+}
+MySqrt1(1000, c(0,10^4))
+```
+
+###### (c) uniroot function
+```{r}
+MySqrt2 <- function(a){
+  f <- function(x){x^2-a}
+  uniroot(f, interval = c(0, 10^4))
+}
+MySqrt2(1000)
+```
+
+
+#### 3
+```{r}
+banana_fun <- function(xy){
+  x <- xy[1]
+  y <- xy[2]
+  return(100*(y-x^2)^2+(1-x)^2)
+}
+
+gradient_banana <- function(xy) {
+  x <- xy[1]
+  y <- xy[2]
+  c(-400*x*(y - x^2 ) - 2*(1 - x), 200*(y - x^2 ))
+}
+
+norm <- function(x){
+  sqrt(sum(x^2))
+}
+```
+
+###### (a) steepest descent -- fixed step size
+```{r}
+steepest_descent_fixed <- function(gradf, start_vec, epsilon = 10^(-4), max_i = 10^5){
+  # This function uses fixed step size method to minimize banana function.
+  # parameter: gradf (gradient function)
+  #            start_vec (start vector) 
+  #            epsilon (limition of accuarcy)
+  #            max_i (max number of iteritions)
+  # return: x (minimum of function)
+  #         i (the number of iterations)
+  x <- start_vec
+  s <- 1
+  i <- 0
+  while(norm(gradf(x)) > epsilon & i < max_i){
+    d <- -gradf(x)/norm(gradf(x))  # steepest direction
+    x <- x+s*d                     # update function   
+    i <- i+1
+  }
+  print(list(min= x, iterations= i))
+}
+steepest_descent_fixed(gradient_banana, c(4,4), epsilon = 10^(-2),  max_i = 10^4)
+steepest_descent_fixed(gradient_banana, c(4,4), epsilon = 10^(-2),  max_i = 10^4+1)
+steepest_descent_fixed(gradient_banana, c(4,4), epsilon = 10^(-2),  max_i = 10^4+2)
+```
+
+The function cannot return a minimum. Because it circulates bewteen two points 
+(-0.06565630, 0.04302636) and (0.07681511, -0.94677256) after certain iterations.
+
+###### (b) steepest descent -- backtrack
+```{r}
+steepest_descent_backtrack <- function(f, gradf, start_vec, epsilon = 10^(-4), max_i = 10^5) {
+  # This function uses backtrack step size method to minimize banana function.
+  # parameter: f (function)
+  #            gradf (gradient function)
+  #            start_vec (start vector) 
+  #            epsilon (limition of accuarcy)
+  #            max_i (max number of iteritions)
+  # return: x (minimum of function)
+  #         i (the number of iterations)
+  x <- start_vec    
+  i <- 0
+  while(norm(gradf(x)) > epsilon & i < max_i){
+    s <- 1
+    d <- -gradf(x)/norm(gradf(x))     # direction
+    while(f(x+s*d) > f(x)){s <- s/2}  # backtrack step size
+    x <- x+s*d   # update function
+    i <- i+1     
+  }
+  print(list(min= x, iterations= i))
+}
+
+steepest_descent_backtrack(banana_fun, gradient_banana, c(4,4))
+```
+
+###### (c) nlm(non-linear minimization) function
+```{r}
+nlm(banana_fun, c(4,4))
+```
+
+From the outcomes, the number of iterations of nlm function is much smaller than that in part(a) and (b).
+However, backtrack step method in part (b) gets a more accurate answer.
+
+
+#### 4
+###### (c) logistic regression
+```{r}
+oring <- read.table("/Users/xuchenwang/o_ring_data.txt", header = T)
+x <- oring[,1]
+y <- oring[,2]
+
+logL <- function(alpha){
+  alpha0 <- alpha[1]
+  alpha1 <- alpha[2]
+  return(sum((1-y)*(-alpha0-alpha1*x)-log(1+exp(-alpha0-alpha1*x))))
+}
+
+gradient_logL <- function(alpha){
+  alpha0 <- alpha[1]
+  alpha1 <- alpha[2]
+  return(c(sum(y-1/(1+exp(-alpha0-alpha1*x))), sum(x*y-x/(1+exp(-alpha0-alpha1*x)))))
+}
+
+steepest_ascent_backtrack <- function(f, gradf, start_vec, epsilon = 10^(-4), max_i = 10^5) {
+  # This function uses backtrack step size method to minimize banana function.
+  # parameter: f (function)
+  #            gradf (gradient function)
+  #            start_vec (start vector) 
+  #            epsilon (limition of accuarcy)
+  #            max_i (max number of iteritions)
+  # return: x (minimum of function)
+  #         i (the number of iterations)
+  x <- start_vec    
+  i <- 0
+  while(norm(gradf(x)) > epsilon & i < max_i){
+    s <- 1
+    d <- gradf(x)/norm(gradf(x))     # direction
+    while(f(x+s*d) < f(x)){s <- s/2}  # backtrack step size
+    x <- x+s*d   # update function
+    i <- i+1     
+  }
+  print(list(max= x, iterations= i))
+}
+outcome <- steepest_ascent_backtrack(logL, gradient_logL, c(15,0), epsilon = 10^(-2))
+
+alpha0 <- outcome$max[1]
+alpha1 <- outcome$max[2]
+yhat <- 1/(1+exp(-alpha0-alpha1*x))
+ggplot()+geom_point(data = oring, aes(x = Temp, y = Failure))+
+  geom_point(aes(x = x, y = yhat), color = "red")+
+  geom_line(aes(x = x, y = yhat), color = "blue")
+```
+
+In the figure, the black points are datapoins. The red points are estimated points. The blue line is the logistic curve. From the figure, the logistic curve is a good fit.
+
+###### (d) glm function
+```{r}
+glm(Failure ~ Temp, data = oring, family = "binomial")
+```
+
+The result of alpha is very close to that in part(c).
+
+
+
+
+

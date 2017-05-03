@@ -1,0 +1,97 @@
+---
+title: "HW3_504"
+author: "Xuchen Wang"
+date: "January 31, 2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### 3 multivariate Newton's method
+```{r}
+g <- function(x){
+  x1 <- x[1]
+  x2 <- x[2]
+  c(x1^2 + x1*x2^3 - 9, 3*x1^2*x2 - x2^3 - 4)
+}
+
+jaco_g <- function(x){
+  x1 <- x[1]
+  x2 <- x[2]
+  matrix(c(2*x1+x2^3, 6*x1*x2, 3*x1*x2^2, 3*x1^2-3*x2^2), nrow = 2, ncol = 2)
+}
+
+norm <- function(x){
+  sqrt(sum(x^2))
+}
+
+multi_newton <- function(f, jf, star_vec, epsilon = 10^(-4), max_i = 10^5){
+  x <- star_vec
+  i <- 0
+  while(norm(f(x)) > epsilon & i < max_i){
+    x <- x - solve(jf(x), f(x))
+    i <- i + 1
+  }
+  print(list(root = x, iterations = i))
+}
+
+multi_newton(g, jaco_g, c(1, 1))
+```
+
+#### 4
+```{r}
+num <- c(10, 100, 500, 1000)
+for(i in 1:length(num)){
+  n <- num[i]
+  print(paste("n = ",n))
+  A <- 10*diag(n)+matrix(runif(n^2), nrow = n, ncol = n)
+  b <- rep(1,n)
+  
+  t1 <- proc.time()
+  x <- solve(A, b)
+  print(proc.time()-t1)
+  t2 <- proc.time()
+  x <- solve(A)%*%b
+  print(proc.time()-t2)
+}
+```
+
+```{r}
+n <- c(5,10,100,1000)
+time_table <- function(n_value){
+  t_gaussian <- c()
+  t_inverse <- c()
+  
+  for(i in 1:length(n_value)){
+  n <- n_value[i]
+  A <- 10*diag(n)+matrix(runif(n^2), nrow = n, ncol = n)
+  b <- rep(1,n)
+  
+  t1 <- proc.time()
+  x <- solve(A, b)
+  t11 <- proc.time()-t1
+  t_gaussian[i] <- t11[3]
+  
+  t2 <- proc.time()
+  x <- solve(A)%*%b
+  t21 <- proc.time()-t2
+  t_inverse[i] <- t21[3]
+  }
+  data.frame(n_value, t_gaussian, t_inverse)
+}
+n <- c(1100,1300,1500,2000)
+time_table(n)
+```
+
+Since the complexity of Gaussian elimination is much smaller than that of computing inverse of A, the time for each n value of computing inverse of A is much longer than that of Gaussian elimitation. And the difference of time is more and more greater as n value increases. Because as n increases, the difference between complexity increases even faster.
+
+
+
+
+
+
+
+
+

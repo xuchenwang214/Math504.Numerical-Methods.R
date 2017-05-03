@@ -1,0 +1,91 @@
+---
+title: "hw11_504"
+author: "Xuchen Wang"
+date: "April 5, 2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### Problem 2
+```{r}
+options(digits = 16)
+i <- -20:0
+h <- 10^i
+d1 <- (exp(0+h)-exp(0))/h
+d2 <- (exp(0+h)-exp(0-h))/(2*h)
+
+correct_digits <- function(x,obj){
+  error <- abs(x-obj)
+  for(i in 1:length(error)){
+    if(error[i] >= 0.1){j <- 0}
+    else{
+      j <- 1
+      while(error[i]<10^(-j)){
+        j <- j+1
+        if(j>16){break}
+        }
+      j <- j-1
+      }
+    print(paste(i-21,':','The error is',error[i],'and correct digit is',j))
+    }
+}
+# show the finite difference and their correct digits
+d1
+correct_digits(d1,1)
+d2
+correct_digits(d2,1)
+```
+
+Explain the results:
+For the two point finite difference, the optimal h is 10^-8 and the corresponding error is about 6*10^-9, the correct digit is 8, which equals the optimal h by calculating the error theoretically. For the two-side estimation, the optimal h is 10^-5, which is nearly 10^(-16/5), the corresponding error is about 10^-11, which is nearly 10^(-32/3).
+Thus, the results of both estimation verify the optimal h and error by calculating the error in class.
+
+#### Problem 4
+```{r}
+Fapprox <- function(n,method,cutoff=3){
+  f <- function(x){1/sqrt(2*pi)*exp(-x^2/2)}
+  h <- cutoff/n
+  x1 <- (0:(n-1))*h
+  x2 <- (1:n)*h
+  if(method=="reimann"){return(sum(f(x1)*h))}
+  else if(method=="trapezoid"){return(sum((f(x1)+f(x2))*h/2))}
+  else if(method=="useR"){return(integrate(f,lower = 0,upper = cutoff,subdivisions = n))}
+}
+
+# using reimann method
+Fapprox(10,method = "reimann")
+Fapprox(100,method = "reimann")
+Fapprox(1000,method = "reimann")
+Fapprox(10000,method = "reimann")
+# using trapezoid method
+Fapprox(10,method = "trapezoid")
+Fapprox(100,method = "trapezoid")
+Fapprox(1000,method = "trapezoid")
+Fapprox(10000,method = "trapezoid")
+# using R method
+Fapprox(10,method = "useR")
+Fapprox(100,method = "useR")
+Fapprox(1000,method = "useR")
+Fapprox(10000,method = "useR")
+
+```
+
+Compare accuracy:
+For the Reimann method, the accuracy improves obviously as n increases. For the Trapezoid method, the accuracy improves little as n increases and almost remains the same when n is larger than 1000. For the R method, the accuracy remains the same. Thus, R method is the most accurate method. When n is small, we use R method to estimate. The Trapezoid is the second accurate method, when n is sufficient large, such as 1000, we can use both R method and Trapezoid method to estimate. When n is very very large, we can use all of those three methods to estimate.
+
+
+
+
+
+
+
+
+
+
+
+
+
+

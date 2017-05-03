@@ -1,0 +1,157 @@
+---
+title: "HW9_504"
+author: "Xuchen Wang"
+date: "March 23, 2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+```
+
+#### Problem 3 (a)
+```{r}
+data <- read.table("/Users/xuchenwang/nba_data.txt", header = T)
+nba <- data.frame(data$height,data$weight)
+x <- unname(as.matrix(nba))
+# center the data
+avg <- colMeans(x)
+x <- t(t(x)-avg)
+# plot the data
+plot(x,xlab = "height of the player", ylab = "weight of the player")
+eigens <- eigen(t(x)%*%x)
+vec1 <- eigens$vectors[,1]
+vec2 <- eigens$vectors[,2]
+abline(a=0, b=vec1[2]/vec1[1],col="red")
+abline(a=0, b=vec2[2]/vec2[1],col="blue")
+```
+
+#### (b)
+```{r}
+proj_dom <- as.vector(vec1%*%t(x))
+extre1 <- order(proj_dom)[c(1,nrow(x))]
+data$player[extre1]
+```
+John Lucas is tall and fat. Nikola Pekovic is short and thin.
+
+
+```{r}
+proj_sec <-  as.vector(vec2%*%t(x))
+extre2 <- order(proj_sec)[c(1,nrow(x))]
+data$player[extre2]
+```
+
+
+
+#### (c)
+```{r}
+mean(proj_dom^2)
+eigens$values[1]/nrow(x)
+```
+
+#### (d)
+```{r}
+z <- cbind(proj_dom,proj_sec)
+t(z)%*%z
+eigens$values
+```
+
+#### Problem 4 (a)
+```{r}
+data2 <- read.table("/Users/xuchenwang/votes_formatted.txt", header = T)
+votes <- unname(data2[,-1])
+data3 <- read.table("/Users/xuchenwang/senators_formatted.txt", header = T)
+party <- data3$party
+# center the data
+avg <- colMeans(votes)
+votes <- t(t(votes)-avg)
+x <- votes%*%t(votes)
+
+power_iter <- function(A, eps= 10^(-10), max_i= 10^4){
+  # This function use power iteration to calculate the dominant eigenvector
+  # parameter: A (original matrix)
+  #            eps (error of the stop condition)
+  #            max_i (maximum iterations)
+  # return: v (dominant eigenvector)
+  #         i (number of iterations)
+  n <- ncol(A)                          # number of pages
+  v <- rep(1,n)                         # randomly generate an initial vector
+  i <- 0
+  sign <- TRUE                          # use sign to control the process of loop
+  while(sign){
+    u <- v
+    v <- A%*%v                               
+    v <- v/norm(v)                      # apply equation and normalize 
+    i <- i+1
+    if (norm(v-u)< eps || i >= max_i)
+      {sign <- FALSE}                   # meet stop condition, then jump out of loop
+    }
+  return(list(domi_vector=v, iterations=i))
+}
+dom_vec <- as.vector(power_iter(x)$domi_vector)
+proj_dom <- as.vector(t(votes)%*%dom_vec)
+
+proj_1d <- data.frame(proj_dom, party)
+ggplot(data = proj_1d)+
+  geom_point(aes(x=1:100,y=proj_dom,color=factor(party)))+
+  xlab("index of senators")+
+  ylab("Dominant eigenvector")
+```
+
+From the graph, it is imformative since it could roughly separate different parties.
+
+#### (b)
+```{r}
+power_iters <- function(A, k, eps = 10^(-10), max_i = 10^4){
+  # This function use power iteration to calculate the first k dominant eigenvector
+  # parameter: A (matrix)
+  #            k (number of dominant eigenvectors)
+  #            eps (error of the stop condition)
+  #            max_i (maximum iterations)
+  # return: v (dominant eigenvector)
+  #         i (number of iterations)
+  n <- ncol(A)
+  set.seed(1)
+  Q <- matrix(rnorm(k*n),ncol = k, nrow = n)
+  i <- 0
+  sign <- TRUE
+  while(sign){
+    U <- Q
+    M <- A%*%Q
+    Q <- qr.Q(qr(M))
+    i <- i+1
+    if (max(abs(Q-U))< eps || i >= max_i)
+    {sign <- FALSE}  
+    }
+  return(list(dom_vecs=Q, iterations=i))
+}
+Q <- power_iters(x,k=2)$dom_vecs
+proj <- t(votes)%*%Q
+
+proj_2d <- data.frame(proj[,1],proj[,2],party)
+ggplot(data = proj_2d)+
+  geom_point(aes(x=proj[,1],y=proj[,2],color=factor(party)))+
+  xlab("Dominant eigenvector")+
+  ylab("Second dominant eigenvector")
+```
+
+#### (c)
+```{r}
+power_iters(x,k=10)
+eigens <- eigen(x)
+eigens$vector[,1:10]
+plot(eigens$values)
+plot(eigens$values[1:10],xlab = "index of lambda", ylab = "eigen values")
+# we can compute all eigenvectors using power iteration
+eigenvec <- power_iters(x,k=10)
+```
+
+There is an obvious dimensional reduction that would capture a significant amount of variance. Because the eigenvalues drop quickly at lambda1 to lambda3 and remains approximately constant from lambda4.
+
+
+
+
+
+
+

@@ -1,0 +1,129 @@
+---
+title: "HW6_504"
+author: "Xuchen Wang"
+date: "February 23, 2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### 3(b)
+```{r}
+a <- 1
+theta <- c(pi/6, pi/4, pi/3)
+deter <- rep(NA,3)
+condi <- rep(NA,3)
+for(i in 1:3){
+  M <- matrix(c(a,0,a*cos(theta[i]),a*sin(theta[i])), ncol=2, nrow=2)
+  deter[i] <- det(M)
+  condi[i] <- kappa(M)
+}
+deter
+condi
+```
+
+When a is fixed, as theta increases, the determinant increases and the condition number decreases.
+
+```{r}
+theta <- pi/3
+a <- c(1,2,3)
+deter <- rep(NA,3)
+condi <- rep(NA,3)
+for(i in 1:3){
+  M <- matrix(c(a[i],0,a[i]*cos(theta),a[i]*sin(theta)), ncol=2, nrow=2)
+  deter[i] <- det(M)
+  condi[i] <- kappa(M)
+}
+deter
+condi
+```
+
+When theta is fixed, as a increases, the determinant increases and the condition number keeps constant.
+
+#### 4 maximize the log likelihood
+```{r}
+oring <- read.table("/Users/xuchenwang/o_ring_data.txt", header = T)
+x <- oring[,1]
+y <- oring[,2]
+
+# change logL, gradient_logL, hessian_logL to negative
+logL <- function(alpha){
+  alpha0 <- alpha[1]
+  alpha1 <- alpha[2]
+  return(-sum((1-y)*(-alpha0-alpha1*x)-log(1+exp(-alpha0-alpha1*x))))
+}
+
+gradient_logL <- function(alpha){
+  alpha0 <- alpha[1]
+  alpha1 <- alpha[2]
+  return(c(-sum(y-1/(1+exp(-alpha0-alpha1*x))), -sum(x*y-x/(1+exp(-alpha0-alpha1*x)))))
+}
+
+hessian_logL <- function(alpha){
+  alpha0 <- alpha[1]
+  alpha1 <- alpha[2]
+  term1 <- exp(-alpha0 - alpha1 * x)
+  term2 <- (1 + exp(-alpha0 - alpha1 * x))^2
+  matrix(c(sum(term1/term2),
+           sum(term1 * x/term2),
+           sum(term1 * x/term2),
+           sum(x^2 * term1/term2)), ncol = 2, nrow = 2)
+}
+
+norm <- function(x){
+  sqrt(sum(x^2))
+}
+
+nw_multi <- function(f, jf, hf, start_vec, eps = 10^-4, max_i = 10^5){
+  # This function uses Newton's method with backtracking and Hessian 
+  # modification to minimize the negative log likelihood.
+  # parameter: f (function)
+  #            jf (jacobian function)
+  #            hf (hessian function)
+  #            start_vec (start vector) 
+  #            epsilon (limition of accuarcy)
+  #            max_i (max number of iteritions)
+  # return: x (minimum of function)
+  #         i (the number of iterations)
+  
+  x <- start_vec                      # assign the start vector to x
+  i<- 0                               # initial the number of iteration to 0
+  
+  while(norm(jf(x)) > eps & i < max_i){
+  # check if the Hessian is definite positive
+  H <- hf(x)
+  lambda <- min(eigen(H)$values)
+  # if the Hessian is not definite positive, use Hessian modification
+  if(lambda < 0){
+    H <- H + (1+abs(lambda))*diag(2)   # the Hessian modification
+  }
+  
+  # check the condition number of hessian/ modification hessian matrix
+  # if the condition number is greater than 10^10, mutiply it by 2 to get a smaller
+  # condition number
+  while(kappa(H)>10^13){
+    lambda <- lambda*2
+    H <- H + (1+abs(lambda))*diag(2)
+  }
+  
+  # use Newton's method with backtracking
+    s <- 1                             # initial the step size to 1
+    d <- -solve(H,jf(x))               # Newton's method's direction
+    while(f(x+s*d)>=f(x)){s <- s/2}    # backtrack of step size
+    x <- x + s*d                       # Newton's method equation
+    i <- i + 1
+  }
+  return(list(min = x, iterations = i))
+}
+nw_multi(logL, gradient_logL, hessian_logL, c(1,1))
+nw_multi(logL, gradient_logL, hessian_logL, c(10,10))
+```
+
+Compare to Newton's method without backtracking and Hessian modification, this method can always get the solution from any start points in several times of iterations.
+
+
+
+
+

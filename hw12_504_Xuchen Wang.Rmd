@@ -1,0 +1,126 @@
+---
+title: "HW12_504"
+author: "Xuchen Wang"
+date: "April 20, 2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(splines)
+library(ggplot2)
+```
+
+#### Problem 2(b)
+```{r}
+mass <- read.table("/Users/xuchenwang/BoneMassData.txt",header = T)[,-1]
+mass <- mass[mass$gender=="female",-2]
+x <- mass$age
+y <- mass$spnbmd
+nknot <- 1000
+myknot <- seq(min(x),max(x),length=nknot)
+# Riemann integration
+n <- 5000
+h <- (max(x)-min(x))/n
+mygrid <- seq(min(x),max(x),length=n+1)
+Bpp <- splineDesign(knots=myknot, x=mygrid[-(n+1)], derivs = 2, outer.ok = T)
+omega <- matrix(NA,ncol = nknot-4,nrow = nknot-4)
+for(i in 1:(nknot-4)){
+  for(j in 1:i){
+    omega[i,j]=sum(Bpp[,i]*Bpp[,j])*h
+    omega[j,i]=omega[i,j]
+  }
+}
+# omega
+```
+
+####(c)
+```{r}
+B <- splineDesign(knots = myknot, x=x, outer.ok = T)
+ro <- 1:10
+d <- c()
+for(i in 1:10){
+  d[i] <- det(t(B)%*%B+ro[i]*omega)
+}
+d
+```
+
+Since the determinant for various values of ro is not 0, t(B)%*%B+ro*omega is invertible.
+
+####(d)
+```{r}
+alpha1 <- solve((t(B)%*%B+0.01*omega),t(B)%*%y)
+#alpha1
+alpha2 <- solve((t(B)%*%B+1*omega),t(B)%*%y)
+#alpha2
+alpha3 <- solve((t(B)%*%B+100*omega),t(B)%*%y)
+#alpha3
+y_pred1 <- B%*%alpha1
+y_pred2 <- B%*%alpha2
+y_pred3 <- B%*%alpha3
+ggplot(data = data.frame(x=x,y=y))+
+  geom_point(aes(x=x,y=y),size=1,color='gray')+
+  geom_line(aes(x=x,y=y_pred1),color='red')+
+  ggtitle("smoothing spline--ro=0.01")
+ggplot(data = data.frame(x=x,y=y))+
+  geom_point(aes(x=x,y=y),size=1,color='gray')+
+  geom_line(aes(x=x,y=y_pred2),color='red')+
+  ggtitle("smoothing spline--ro=1")
+ggplot(data = data.frame(x=x,y=y))+
+  geom_point(aes(x=x,y=y),size=1,color='gray')+
+  geom_line(aes(x=x,y=y_pred3),color='red')+
+  ggtitle("smoothing spline--ro=100")
+```
+
+As the penalty term ro increases from 0.01 to 100, the spline becomes smooth. Because when the penalty term is small, it plays little role in the minimization process. The integration which measures the smooth of the spline is minimized in a small degree. So the spline looks wiggle and may overfit the data. On the other hand, when the penalty term is large, it plays an important role in the minimization process. The intergration is minimized in a large degree. So the spline looks very smooth. But there is also chance that the spline underfit the data. Therefore, in my opinion, I would like to choose ro=1. But it depends on the requirement of the specific situation.
+
+#### Problem 4(b)
+```{r}
+X <- matrix(1:6, nrow = 2, byrow = T)
+V <- eigen(t(X)%*%X)$vectors
+U <- eigen(X%*%t(X))$vectors
+S <- t(U)%*%X%*%V
+V
+U
+S
+# check
+U%*%S%*%t(V)
+```
+
+#### (c)
+```{r}
+data2 <- read.table("/Users/xuchenwang/votes_formatted.txt", header = T)
+sv <- t(as.matrix(unname(data2[,-1])))
+# center the column
+sv <- scale(sv, center = T, scale = F)
+# center the row
+sv <- t(scale(t(sv), center = T, scale = F))
+# calculate the SVD
+sv_svd <- svd(sv,nu=nrow(sv),nv=ncol(sv))
+U <- sv_svd$u
+V <- sv_svd$v
+S <- sv_svd$d
+s1 <- S[1]
+s2 <- S[2]
+s <- matrix(c(s1,0,0,s2),2,2)
+proj_v <- sv%*%V[,1:2]
+proj_u <- t(sv)%*%U[,1:2]
+ggplot(data=data.frame(x=U[,1],y=U[,2]))+geom_point(aes(x=U[,1],y=U[,2]),color='blue')+
+  geom_point(aes(x=proj_v[,1],y=proj_v[,2]),color='red')
+ggplot(data=data.frame(x=V[,1],y=V[,2]))+geom_point(aes(x=V[,1],y=V[,2]),color='blue')+
+  geom_point(aes(x=proj_u[,1],y=proj_u[,2]),color='red')
+```
+
+From the plot, we can see that the points in the first plot are the first two PCAs of each senator. It is the projection of points in the domain (with dimension 542) into dimension 2. Though it is unclear in the plot, by the equation Xv1=s1u1, Xv2=s2u2, we can conclude that by multiply s1 and s2 to each coordinate of the basis in U, we can get the projection of the domain in a two-dimension space. Similarly, in the seconde plot we have the first two PCAs of each vote. It is the projection of points in the range (with dimension 100) into dimension 2. By the equation t(X)u1=s1v1, t(X)u2=s2v2, we can conclude that by multiply s1 and s2 to each coordinate of the basis in V, we and get the projection of the range in a two-dimension space.
+
+
+
+
+
+
+
+
+
+
+
+

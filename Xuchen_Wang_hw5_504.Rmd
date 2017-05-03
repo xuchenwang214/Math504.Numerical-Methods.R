@@ -1,0 +1,86 @@
+---
+title: "HW5_504"
+author: "Xuchen Wang"
+date: "February 16, 2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### 2
+##### (a)
+```{r}
+nba <- read.table("/Users/xuchenwang/nba_data.txt", header = T)
+attach(nba)
+design <- unname(cbind(1, weight))
+A <- t(design)%*%design
+b <- -2*t(design)%*%height
+c <- t(height)%*%height
+list(A=A, b=b, c=c)
+```
+
+##### (b)
+```{r}
+E <- eigen(A, symmetric = T)
+M <- diag(E$values)
+d <- t(E$vectors)%*%b
+e <- c
+list(M=M, d=d, e=e)
+```
+
+##### (c)
+```{r}
+fit <- lm(height~weight, data = nba)
+coef(fit)
+```
+
+```{r}
+f <- function(alpha){
+  t(alpha)%*%A%*%alpha + t(b)%*%alpha + c
+}
+
+gradf <- function(alpha){
+  2*A%*%alpha + b
+}
+
+steepest_descent_backtrack <- function(f, gradf, start_vec, epsilon = 10^(-4), max_i = 10^5) {
+  # This function uses backtrack step size method to minimize banana function.
+  # parameter: f (function)
+  #            gradf (gradient function)
+  #            start_vec (start vector) 
+  #            epsilon (limition of accuarcy)
+  #            max_i (max number of iteritions)
+  # return: x (minimum of function)
+  #         i (the number of iterations)
+  x <- start_vec    
+  i <- 0
+  while(norm(gradf(x)) > epsilon & i < max_i){
+    s <- 1
+    d <- -gradf(x)/norm(gradf(x))     # direction
+    while(f(x+s*d) > f(x)){s <- s/2}  # backtrack step size
+    x <- x+s*d   # update function
+    i <- i+1     
+  }
+  print(list(min= x, iterations= i))
+}
+
+steepest_descent_backtrack(f, gradf, c(55,1))
+```
+
+It does not reach to minimum in 10^5 iterations. It is very slow, since the steepest descent method choose a bad direction in this condition. 
+
+##### (d)
+It would take 1 step using Newton's method to reach the minimum. Because for quadratic function, Newton's method uses quadratic function itself to approximate it and therefore it reach to minimum directly in just one step.
+
+
+
+
+
+
+
+
+
+
+

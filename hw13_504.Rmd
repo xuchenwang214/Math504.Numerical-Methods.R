@@ -1,0 +1,88 @@
+---
+title: "Untitled"
+author: "Xuchen Wang"
+date: "April 27, 2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+#### Problem 4 (c)
+```{r}
+data2 <- read.table("/Users/xuchenwang/votes_formatted.txt", header = T)
+a <- as.matrix(unname(data2[,-1]))
+norm <- function(x){sqrt(sum(x^2))}
+svd_a <- svd(a)
+s <- svd_a$d
+v <- svd_a$v
+u <- svd_a$u
+# two methods
+# method 1: use the expression of inference: randomly generate vector x (norm(x)=1), calculate the relative error for different D until the relative error is less than 0.1.
+d <- rep(NA,1000)
+for(i in 1:1000){
+  set.seed(i)
+  x <- rnorm(100)
+  x <- x/norm(x)
+  ax <- (x^2)*(s^2)
+  d[i] <- 1
+  while(d[i] <= min(dim(a))){
+    error <- sqrt(sum(ax[-(1:d[i])])/sum(ax))
+    if(error<0.1) break
+    else d[i] <- d[i]+1
+    }
+}
+range(d)
+
+x <- c(rep(0,99),1)
+ax <- (x^2)*(s^2)
+d <- 1
+while(d <= 100){
+  error <- sqrt(sum(ax[-(1:d)])/sum(ax))
+  if(error<0.1) {break}
+  else {d <- d+1}
+}
+print(d)
+```
+
+As seen from the outcome, when x is (0,0,....,0,1), D could be 100. So 100 might be an answer to the question.
+
+
+```{r}
+# method2: use the original expression. Since the approximation of R, the outcome is a # little difference from the first method.
+d <- c()
+for(i in 1:100){
+  set.seed(i)
+  x <- rnorm(100)
+  x <- x/norm(x)
+  d[i] <- 1
+  a_esi <- rep(0,542)
+  while(d[i] <= min(dim(a))){
+    a_esi <- a_esi+s[d[i]]*u[,d[i]]%*%t(v[,d[i]])
+    error <- norm(a%*%x-a_esi%*%x)/norm(a%*%x)
+    if(error<0.1) break
+    else d[i] <- d[i]+1
+    }
+}
+range(d)
+
+d <- 1
+x <- c(rep(0,99),1)
+a_esi <- rep(0,542)
+while(d<=min(dim(a))){
+  a_esi <- a_esi+s[d]*u[,d]%*%t(v[,d])
+  error1 <- norm(a%*%x-a_esi%*%x)/norm(a%*%x)
+  if(error1<0.1) break
+  else d <- d+1
+}
+print(d)
+```
+
+The outcome is a little different. We can see the range is (51,93). If we try more times, D might be bigger.
+
+
+
+

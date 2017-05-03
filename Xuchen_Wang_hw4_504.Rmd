@@ -1,0 +1,176 @@
+---
+title: "Xuchen_Wang_HW4_504"
+author: "Xuchen Wang"
+date: "February 9, 2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### 2
+```{r}
+options(digits = 16)
+x <- 1/3
+x <- x+1
+x <- x-1
+x == 1/3
+print(x)
+```
+
+When x is assigned value 1/3, R caculates 1/3 and return an approximate number of 16 digits. After adding and subtracting 1 from x, x is still the approximate number of 16 digits. It is not exactly 1/3, so the outcome of the last second line is FALSE and the outcome of the last line is the the approximate number of 16 digits.
+
+```{r}
+x <- 1/3
+x <- x+10^4
+x <- x-10^4
+x == 1/3
+print(x)
+```
+
+When x is assigned value 1/3, R caculates 1/3 and return an approximate number of 16 digits. After adding 10^4 to x, x is 10000.33333333333. After subtracting 10^4 frome x, x is 0.3333333333339397. The first 15 digits is from 10000.33333333333-10^4, the last five digits is approximately calculated by binary. So the outcome of the last second line is FALSE and the outcome of the last line is 0.3333333333339397.
+
+```{r}
+x <- 1/3
+x <- x+10^20
+x <- x-10^20
+x == 1/3
+print(x)
+```
+
+When x is assigned value 1/3, R caculates 1/3 and return an approximate number of 16 digits. After adding 10^20 to x, x is 100000000000000000000.3333..... Since this number against the rule of 16 consecutive non-zero digits, R stores it as 1e+20. When substracting 10^20 from x, x is equal to 0. So the outcome of the last second line is FALSE and the outcome of the last line is 0.
+
+
+#### 3
+##### (a)
+```{r}
+f <- function(x){x^4-20/3*x^3-24*x^2+19*x-10}
+curve(f, from = -5, to = 9)
+```
+
+From the figure, the local max is approximately 1 and the local mins is around -2, 7.
+
+##### (b)
+```{r}
+f1 <- function(x){4*x^3-20*x^2-48*x+19}
+f2 <- function(x){12*x^2-40*x-48}
+nw <- function(fir_f, sec_f, start, eps = 10^-4, max_i = 10^5){
+  x <- start
+  i <- 0
+  while(abs(fir_f(x)) > eps & i < max_i){
+    x <- x - fir_f(x)/sec_f(x)  # newton equation
+    i <- i+1
+  }
+  #  check the sign of sec_f of the critical point
+  if (sec_f(x)<0){return(list(local_max = x, iterations = i))}
+  else if (sec_f(x)>0){return(list(local_min = x, iterations = i))}
+  else {return(list(local_max_min = x, iterations = i))}
+}
+nw(f1, f2, -2)
+nw(f1, f2, 1)
+nw(f1, f2, 7)
+nw(f1, f2, 100)
+nw(f1, f2, -100)
+```
+
+According to part(a), choose -2, 1 and 7 as starting points. Then use -100 and 100 as starting points to check if there exists other local maxes or mins. The outcomes -100 and 100 are the same as -2 and 7 respectively, which shows that there does not exist other local maxes or mins. So local max is 0.3487029 and local mins are -2.036755 and 6.688052.
+
+From different starting points, the value of their first and second derivative is different and hence Newton's Method picks different directions, so they converge to different critical points.
+
+I have control of whether a max or a min is found by checking the sign of the second derivative of the critical point. If it is positive, the critical point is the local min. If it is negative, the critical point is the local max. If it is equal to 0, it is a saddle point.
+
+
+#### 4
+```{r}
+banana_fun <- function(xy){
+  x <- xy[1]
+  y <- xy[2]
+  return(100*(y-x^2)^2+(1-x)^2)
+}
+
+gradient_banana <- function(xy) {
+  x <- xy[1]
+  y <- xy[2]
+  c(-400*x*(y - x^2 ) - 2*(1 - x), 200*(y - x^2 ))
+}
+
+hessian_banana <- function(xy){
+  x <- xy[1]
+  y <- xy[2]
+  matrix(c(-400*y+1200*x^2+2, -400*x, -400*x, 200), nrow = 2, ncol = 2)
+}
+
+norm <- function(x){
+  sqrt(sum(x^2))
+}
+
+nw_multi <- function(jf, hf, start_vec, eps = 10^-4, max_i = 10^5){
+  x <- start_vec
+  i <- 0
+  while(norm(jf(x)) > eps & i < max_i){
+    x <- x - solve(hf(x),jf(x))   # newton equation
+    i <- i + 1
+  }
+  return(list(min = x, iterations = i))
+}
+
+nw_multi(gradient_banana, hessian_banana, c(4,4))
+```
+
+There are 5 iterations before convergence. It is very small compared to results from hw 2, since Newton's Method picks directions much better than steepest descent method for banana function.
+
+
+#### 5
+```{r}
+oring <- read.table("/Users/xuchenwang/o_ring_data.txt", header = T)
+x <- oring[,1]
+y <- oring[,2]
+
+logL <- function(alpha){
+  alpha0 <- alpha[1]
+  alpha1 <- alpha[2]
+  return(sum((1-y)*(-alpha0-alpha1*x)-log(1+exp(-alpha0-alpha1*x))))
+}
+
+gradient_logL <- function(alpha){
+  alpha0 <- alpha[1]
+  alpha1 <- alpha[2]
+  return(c(sum(y-1/(1+exp(-alpha0-alpha1*x))), sum(x*y-x/(1+exp(-alpha0-alpha1*x)))))
+}
+
+hessian_logL <- function(alpha){
+  alpha0 <- alpha[1]
+  alpha1 <- alpha[2]
+  matrix(c(sum(-(exp(-alpha0 - alpha1 * x)/(1 + exp(-alpha0 - alpha1 * x))^2)),
+           sum(-(exp(-alpha0 - alpha1 * x) * x/(1 + exp(-alpha0 - alpha1 * x))^2)),
+           sum(-(exp(-alpha0 - alpha1 * x) * x/(1 + exp(-alpha0 - alpha1 * x))^2)),
+           sum(-(x * (exp(-alpha0 - alpha1 * x) * x)/(1 + exp(-alpha0 - alpha1 *x))^2))
+           ), ncol = 2, nrow = 2)
+}
+nw_multi <- function(jf, hf, start_vec, eps = 10^-4, max_i = 10^5){
+  x <- start_vec
+  i <- 0
+  while(norm(jf(x)) > eps & i < max_i){
+    x <- x - solve(hf(x),jf(x))   # newton equation
+    i <- i + 1
+    print(c(x,i))
+  }
+  return(list(max = x, iterations = i))
+}
+nw_multi(gradient_logL, hessian_logL, c(0,0))
+
+```
+
+I did not use the same start point as I did in hw2, since in that condition the hessian matrix is not invertible. There are 5 iterations before convergence. It is very small compared to results from hw 2, since Newton's Method picks directions much better than steepest descent method for banana function.
+
+
+
+
+
+
+
+
+
+
+
